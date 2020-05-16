@@ -1,10 +1,30 @@
 {
   "name": "dlink_websocketclient",
   "version": "0.1.0",
+  "description": "Interface myDlink DSP-W115 and DSP-W245 (and others like DSP-W118?) using node.js",
+  "author": {
+    "name": "Garfonso",
+    "email": "garfonso@mobo.info"
+  },
+  "homepage": "https://github.com/Garfonso/dlinkWebSocketClient",
+  "license": "MIT",
+  "keywords": [
+    "mydlink",
+    "dsp-w115",
+    "dsp-w245",
+    "dsp-w118",
+    "smartplug"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Garfonso/dlinkWebSocketClient"
+  },
   "dependencies": {
     "ws": "^7.3.0"
   },
   "devDependencies": {
     "@types/node": "^14.0.1"
-  }
+  },
+  "main": "index.js",
+  "readmeFilename": "README.md"
 }
