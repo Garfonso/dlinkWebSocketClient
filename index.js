@@ -1,29 +1,3 @@
-/*
-    Idea/Information based on the work of jonassjoh, see: https://github.com/jonassjoh/dspW245/
-    Many thanks for all the good work. I translated it from python to node.js and using websocket/Hybi library!
-
-    The MIT License (MIT)
-
-    Copyright (c) 2020 Garfonso
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
-*/
 
 const crypto = require('crypto');
 const WebSocket = require('ws');
@@ -46,7 +20,7 @@ const TYPE_LED = 41;
  * @typedef {WebSocketClean & Socket} WebSocket
  */
 
-
+function noop() {}
 
 class WebSocketClient extends EventEmitter.EventEmitter {
     /**
@@ -57,7 +31,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @property {string} pin either Pin on the back or device token (if paired with App! Needs to be extracted, see readme).
      * @property {number} [port] defaults to 8080
      * @property {string} [model] either w115 or w245.
-     * @property {function} [log] function for debug logging, defaults to console.
+     * @property {function} [log] function for debug logging, defaults to noop.
      * @property {number} [keepAlive] seconds to ping, defaults to 30. 0 to turn off.
      *
      * @param {Parameters} opt - parameters, must have url, user and password.
@@ -69,7 +43,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             pin: opt.pin || '',
             model: opt.model || '',
             port: opt.port || 8080,
-            debug: opt.log || console.log,
+            debug: opt.log || noop,
             keepAlive: opt.keepAlive || 30,
             deviceToken: '',
             deviceId: '',
@@ -80,7 +54,6 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             state: [false]
         };
         this._device.state = this._device.model === 'w245' ? [false, false, false, false] : [false];
-        console.debug('New webSocketClient with options ', opt);
     }
 
     //private functions:
@@ -94,9 +67,9 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         if (message.command === 'event' && message.event && message.event.metadata) {
             if (message.event.metadata.type === TYPE_SOCKET) {
                 this._device.debug(`Socket ${message.event.metadata.idx} now ${message.event.metadata.value}`);
-                this.emit('switched', message.event.metadata.value, message.event.metadata.idx);
+                this.emit('switched', message.event.metadata.value === 1, message.event.metadata.idx);
             } else if (message.event.metadata.type === TYPE_LED) {
-                this.emit('switched_led', message.event.metadata.value, message.event.metadata.idx);
+                this.emit('switched-led', message.event.metadata.value === 1, message.event.metadata.idx);
             }
         }
     }
@@ -141,7 +114,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                 this.emit('ready');
                 resolve(true);
             });
-            this._device.socket.on('message', this._receiveData);
+            this._device.socket.on('message', this._receiveData.bind(this));
             this._device.socket.on('unexpected-response', (request, response) => this._device.debug('Unexpected response: ', response, 'to', request));
 
             if (this._device.keepAlive > 0) {
@@ -318,7 +291,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @param {number} [socket] to switch, defaults to 0
      * @returns {Promise<boolean>} new state
      */
-    async switch(on, socket = 1) {
+    async switch(on, socket = 0) {
         return this._setSetting(on ? 1 : 0, socket, TYPE_SOCKET);
     }
 
@@ -335,14 +308,18 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     /**
      * Query state of socket
      * @param {number} [socket] socket between 0 and 3 (for w245), defaults to 0. Supply -1 to get all sockets.
-     * @returns {Promise<boolean|Array<{uid: number, metadata: {value: number}, idx: number, type: number}>>}
+     * @returns {Promise<boolean|Array<boolean>>}
      */
     async state (socket = 0) {
         const settings = await this._getSetting(TYPE_SOCKET);
         if (socket >= 0) {
             return settings[socket].metadata.value === 1;
         }
-        return settings;
+        const result = [];
+        for (const s of settings) {
+            result.push(s.metadata.value === 1);
+        }
+        return result;
     }
 }
 
