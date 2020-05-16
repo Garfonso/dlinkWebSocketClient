@@ -46,6 +46,8 @@ changes with every reboot, though. So keep it open.**
 
 ### Usage
 
+Install with `npm install dlink_websocketclient`.
+
 #### Commandline tool
 There is a small command line tool that can act as an example or be used in skripts already.
 Usage of that tool is like this:
@@ -55,7 +57,7 @@ Where 0/1 is for socket off/on and optional index to select a socket.
 #### Library
 Example for library use:
 ```javascript
-const WebSocketClient = require('dlinkWebSocketClient');
+const WebSocketClient = require('dlink_websocketclient');
 
 const client = new WebSocketClient({
     ip: '192.168.0.20', //ip or hostname of the device
