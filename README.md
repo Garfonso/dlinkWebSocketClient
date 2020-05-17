@@ -48,11 +48,14 @@ changes with every reboot, though. So keep it open.**
 
 Install with `npm install dlink_websocketclient`.
 
-#### Commandline tool
-There is a small command line tool that can act as an example or be used in skripts already.
+#### Commandline tools
+There is a small command line tool that can act as an example or be used in scripts already.
 Usage of that tool is like this:
 `node switch.js IP PIN 0/1 [Index]` 
 Where 0/1 is for socket off/on and optional index to select a socket.
+If you are using the app, too, you can now supply TELNET as PIN and it will tell the library to get the token from telnet.
+(Of course the telnet port needs to stay active for this to work). 
+There is also a new tool getToken.js which will acquire the PIN from telnet and print it on the console.
 
 #### Library
 Example for library use:
@@ -106,12 +109,17 @@ interface Parameters {
  model: string, //optional either w115 or w245.
  log: function, //optional, pass function for debug logging, defaults to noop.
  keepAlive: number, //options, interval in seconds to ping. Defaults to 30. Use 0 to turn off.
+ useTelnetForToken: boolean //if true, in the login command, the library will try to get the token by connecting via telnet.
 }
 ```
 
 ###### connect / disconnect
 No parameters. Starts / Stops socket connection.
 connect returns a promise that will resolve when the connection is ready to use (i.e. login is possible)
+
+###### getTokenFromTelnet
+Helper function to connect to telnet and extract the token from telnet. It seems token changes every day on W115. So
+we can just get it from telnet when needed.
 
 ###### login
 Logs in to the device. Will call connect, if not already done. Returns promise.
