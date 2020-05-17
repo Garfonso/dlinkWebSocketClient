@@ -158,3 +158,18 @@ to not require the device token, which changes each boot, it seems).
 Please feel free to open an issue with any information you can provide or reach me at garfonso@mobo.info.
 
 Of course I'm also very glad about issues and pull requests if you find a bug / have an improvement in the code itself. 
+
+## Changelog
+<!-- 
+	Placeholder for next versions (this needs to be indented):
+	### __WORK IN PROGRESS__
+-->
+### 0.2.1 (2020-05-17)
+* Remove debug logging from switch.js
+
+### 0.2.0 (2020-05-17)
+* add getToken.js
+* add useTelnetForToken in library and adjust switch.js to use if
+
+### 0.1.0 (2020-05-16)
+* initial public release
