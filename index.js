@@ -33,6 +33,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @property {string} [model] either w115 or w245.
      * @property {function} [log] function for debug logging, defaults to noop.
      * @property {number} [keepAlive] seconds to ping, defaults to 30. 0 to turn off.
+     * @property {boolean} [useTelnetForToken] library should get the device token from telnet (which needs to be active).
      *
      * @param {Parameters} opt - parameters, must have url, user and password.
      */
@@ -51,7 +52,8 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             socket: /** @type {WebSocket} */ ({}),
             pingHandler: /** @type {NodeJS.Timeout|undefined} */ (undefined),
             sequence: 1000,
-            state: [false]
+            state: [false],
+            useTelnetForToken: opt.useTelnetForToken
         };
         this._device.state = this._device.model === 'w245' ? [false, false, false, false] : [false];
     }
@@ -260,6 +262,57 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     }
 
     /**
+     * Use open telnet port and known credentials to get the device_token. For this you need to follow the procedure
+     * in the readme to prepare the device, before.
+     * @returns {Promise<boolean>}
+     */
+    async getTokenFromTelnet() {
+        return new Promise((resolve, reject) => {
+            const net = require('net');
+            const s = net.createConnection(23, this._device.ip);
+
+            s.on('data', buffer => {
+                const d = buffer.toString('utf-8');
+                if (d.toLowerCase().includes('login:')) {
+                    this._device.debug('Telnet: Sending login.');
+                    s.write(Buffer.from('admin\n'));
+                }
+                if (d.toLowerCase().includes('password:')) {
+                    this._device.debug('Telnet: Sending password.');
+                    s.write(Buffer.from('123456\n'));
+                }
+                if (d.includes('DeviceToken')) {
+                    const pairs = d.split(',');
+                    for (const pair of pairs) {
+                        const [key, value] = pair.split(':');
+                        if (key === '"DeviceToken"') {
+                            this._device.pin = value.substring(1, value.length - 1); //remove quotes.
+                            this._device.debug('Telnet: Got token: ' + this._device.pin);
+                            resolve(true);
+                            s.end(Buffer.from('\x04'));
+                            return;
+                        }
+                    }
+                    s.end(Buffer.from('\x04'));
+                    reject(new Error('No token found.'));
+                    return;
+                }
+                if (d.includes('#')) {
+                    this._device.debug('Telnet: Sending command.');
+                    s.write(Buffer.from('cat /mydlink/config/device.cfg\n'));
+                }
+            });
+            s.on('close', () => reject(new Error('Connection closed.')));
+            s.on('error', (e) => reject(e));
+            s.on('end', () => reject(new Error('Connection ended.')));
+
+            s.on('ready', () => {
+                this._device.debug('Telnet: Ready.');
+            });
+        });
+    }
+
+    /**
      * Login to device. Will get salt and device_id.
      * @returns {Promise<boolean>}
      */
@@ -267,6 +320,9 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         if (!this._device.socket || this._device.socket.readyState !== WebSocket.OPEN) {
             this._device.debug('Need to connect. Doing that now.');
             await this.connect();
+        }
+        if (this._device.useTelnetForToken) {
+            await this.getTokenFromTelnet();
         }
         this._device.debug('Connected. Signing in.');
         const message = await this._sendJsonAsync({command: 'sign_in'});
