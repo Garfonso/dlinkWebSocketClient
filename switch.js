@@ -7,6 +7,7 @@ const WebSocketClient = require('./index');
 
 if (process.argv.length < 5) {
     console.log('Too few parameters: ' + JSON.stringify(process.argv));
+    console.log('Supply TELNET as PIN to get token from telnet programatically.');
     console.log('Usage: node switch.js IP PIN 0/1 [index] - index defaults to 0');
     process.exit(-1);
 }
@@ -19,7 +20,8 @@ async function main() {
     const client = new WebSocketClient({
         ip: ip,
         pin: pin,
-        log: () => {}
+        useTelnetForToken: pin === 'TELNET',
+        log: console.log
     });
 
     client.on('switched', (newState, socket) => {
