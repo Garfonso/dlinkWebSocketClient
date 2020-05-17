@@ -1,7 +1,11 @@
 
 const net = require('net');
 
-const s = net.createConnection(23, "192.168.0.189", () => {
+if (!process.argv[2]) {
+    console.log('Please supply IP as parameter!');
+    process.exit(-2);
+}
+const s = net.createConnection(23, process.argv[2], () => {
     console.log("Connected.");
 });
 
