@@ -21,7 +21,7 @@ async function main() {
         ip: ip,
         pin: pin,
         useTelnetForToken: pin === 'TELNET',
-        log: console.log
+        log: () => {}
     });
 
     client.on('switched', (newState, socket) => {
