@@ -196,7 +196,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     _sendJsonAsync(data) {
         return new Promise((resolve, reject) => {
             const that = this;
-            function handleMessage(messageText) {
+            const handleMessage = function (messageText) {
                 const message = JSON.parse(messageText);
                 if (message.sequence_id !== expectedSequence) {
                     that._device.debug('Unexpected message with sequence_id: ' + message.sequence_id);
@@ -204,9 +204,9 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                     resolve(message);
                     that._device.socket.removeListener('message', handleMessage);
                 }
-            }
+            }.bind(this);
 
-            that._device.socket.on('message', handleMessage.bind(this));
+            that._device.socket.on('message', handleMessage);
             that._device.socket.once('close', (code, reason) => reject(new Error(`Socket closed: ${reason} (${code})`)));
             that._device.socket.once('error', (error) => reject(new Error('Socket error: ' + error)));
             const expectedSequence = this._sendJson(data);
