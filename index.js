@@ -288,11 +288,22 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     }
 
     /**
-     * Use open telnet port and known credentials to get the device_token. For this you need to follow the procedure
-     * in the readme to prepare the device, before.
-     * @returns {Promise<boolean>}
+     * Returns device id (MAC address stripped of :).
+     * Works after login.
+     * @returns {string}
      */
-    async getTokenFromTelnet() {
+    getDeviceId() {
+        return this._device.deviceId;
+    }
+
+    /**
+     * Get file contents via telnet connection, device needs to have telnet server activated.
+     * @param {string} file
+     * @param {string} searchString
+     * @returns {Promise<string>}
+     * @private
+     */
+    async _getFileContentsFromTelnet(file, searchString){
         return new Promise((resolve, reject) => {
             const net = require('net');
             const s = net.createConnection(23, this._device.ip);
@@ -307,25 +318,13 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                     this._device.debug('Telnet: Sending password.');
                     s.write(Buffer.from('123456\n'));
                 }
-                if (d.includes('DeviceToken')) {
-                    const pairs = d.split(',');
-                    for (const pair of pairs) {
-                        const [key, value] = pair.split(':');
-                        if (key === '"DeviceToken"') {
-                            this._device.pin = value.substring(1, value.length - 1); //remove quotes.
-                            this._device.debug('Telnet: Got token: ' + this._device.pin);
-                            resolve(true);
-                            s.end(Buffer.from('\x04'));
-                            return;
-                        }
-                    }
+                if (d.includes(searchString)) {
                     s.end(Buffer.from('\x04'));
-                    reject(new Error('No token found.'));
-                    return;
+                    resolve(d);
                 }
                 if (d.includes('#')) {
                     this._device.debug('Telnet: Sending command.');
-                    s.write(Buffer.from('cat /mydlink/config/device.cfg\n'));
+                    s.write(Buffer.from('cat ' + file + '\n'));
                 }
             });
             s.on('close', () => reject(new Error('Connection closed.')));
@@ -336,6 +335,51 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                 this._device.debug('Telnet: Ready.');
             });
         });
+    }
+
+    /**
+     * Get Device info like Model and MAC from telnet.
+     * @returns {Promise<{}>}
+     */
+    async getDeviceInfoFromTelnet() {
+        const d = await this._getFileContentsFromTelnet('/mydlink/config/mdns/mdns.conf','_dcp._tcp. local.' );
+        const lines = d.split('\n');
+        const deviceInfo = {};
+        for (const line of lines) {
+            const [key, value] = line.split('=');
+            if (key === 'mac') {
+                deviceInfo.mac = value;
+            } else if (key === 'model') {
+                this._device.model = value.substring(value.indexOf('-') + 1);
+                deviceInfo.model = value;
+            } else if (key === 'hw_ver') {
+                deviceInfo.hardwareVersion = value;
+            } else if (key === 'fw_ver') {
+                deviceInfo.firmwareVersion = value;
+            } else if (key === 'md_ver') {
+                deviceInfo.softwareVersion = value;
+            }
+        }
+        return deviceInfo;
+    }
+
+    /**
+     * Use open telnet port and known credentials to get the device_token. For this you need to follow the procedure
+     * in the readme to prepare the device, before.
+     * @returns {Promise<boolean>}
+     */
+    async getTokenFromTelnet() {
+        const d = await this._getFileContentsFromTelnet('/mydlink/config/device.cfg','DeviceToken' );
+        const pairs = d.split(',');
+        for (const pair of pairs) {
+            const [key, value] = pair.split(':');
+            if (key === '"DeviceToken"') {
+                this._device.pin = value.substring(1, value.length - 1); //remove quotes.
+                this._device.debug('Telnet: Got token: ' + this._device.pin);
+                return true;
+            }
+        }
+        throw new Error('No token found.');
     }
 
     /**
@@ -356,6 +400,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         this._device.deviceId = message.device_id;
         this._device.shortId = this._device.deviceId.substring(this._device.deviceId.length - 4);
         this._device.connected = true;
+        this._device.debug('Connection successful.');
         return true;
     }
 
