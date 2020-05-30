@@ -78,9 +78,6 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     }
 
     _ping() {
-        if (!this._device) {
-            return;
-        }
         if (this._device.pingHandler) {
             clearTimeout(this._device.pingHandler);
         }
@@ -90,7 +87,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             };
             this._device.socket.ping(JSON.stringify(data));
         }
-        this._device.pingHandler = setTimeout(this._ping, this._device.keepAlive * 1000);
+        this._device.pingHandler = setTimeout(this._ping.bind(this), this._device.keepAlive * 1000);
     }
 
     /**
