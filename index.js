@@ -97,6 +97,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * Connects via socket.
      */
     connect() {
+        let resolved = false;
         return new Promise((resolve, reject) => {
             this._device.socket = new WebSocket('https://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
                 protocolVersion: 13,
@@ -106,19 +107,28 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             this._device.socket.on('close', (code, reason) => {
                 this._device.debug('Socket closed: ' + reason + '(' + code + ')');
                 this._device.connected = false;
-                this.emit('close', code, reason);
-                reject(new Error(`Socket closed: ${reason} (${code})`));
+                if (resolved) {
+                    this.emit('close', code, reason);
+                } else {
+                    reject(new Error(`Socket closed: ${reason} (${code})`));
+                    resolved = true;
+                }
             });
             this._device.socket.on('error', (e) => {
                 this._device.debug('Socket error:', e);
                 this._device.connected = false;
-                this.emit('error', e);
-                reject(new Error('Socket error: ' + e));
+                if (resolved) {
+                    this.emit('error', e);
+                } else {
+                    reject(new Error('Socket error: ' + e));
+                    resolved = true;
+                }
             });
             this._device.socket.on('open', () => {
                 this._device.debug('Socket open');
-                this.emit('ready');
                 resolve(true);
+                resolved = true;
+                this.emit('ready');
             });
             this._device.socket.on('message', this._receiveData.bind(this));
             this._device.socket.on('unexpected-response', (request, response) => this._device.debug('Unexpected response: ', response, 'to', request));
