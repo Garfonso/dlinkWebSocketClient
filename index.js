@@ -64,6 +64,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @param {string} data
      */
     _receiveData(data) {
+        this.emit('message', data);
         const message = JSON.parse(data);
         this._device.debug('Got message: ', message);
         if (message.command === 'event' && message.event && message.event.metadata) {
