@@ -31,6 +31,7 @@ async function main() {
     await client.login();
     console.log('Signed in!');
 
+    console.log('Getting state');
     let state = await client.state();
     console.log('Socket is ' + (state ? 'on' : 'off'));
 
