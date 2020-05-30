@@ -78,6 +78,9 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     }
 
     _ping() {
+        if (!this._device) {
+            return;
+        }
         if (this._device.pingHandler) {
             clearTimeout(this._device.pingHandler);
         }
