@@ -121,6 +121,10 @@ connect returns a promise that will resolve when the connection is ready to use 
 Helper function to connect to telnet and extract the token from telnet. It seems token changes every day on W115. So
 we can just get it from telnet when needed.
 
+###### getDeviceInfoFromTelnet
+Helper function to connect to telnet and extract device info from telnet. Will return an object with 
+model, mac and hardwareVersion, firmwareVersion, softwareVersion as properties. 
+
 ###### login
 Logs in to the device. Will call connect, if not already done. Returns promise.
 
@@ -164,6 +168,10 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### 0.3.0 (2020-05-30)
+* added getDeviceInfoFromTelnet function
+* fixed ping functionality.
+
 ### 0.2.1 (2020-05-17)
 * Remove debug logging from switch.js
 
