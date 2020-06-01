@@ -42,7 +42,7 @@ in all places where it says "PIN" in the following description. You can get the 
 Now use this device token everywhere, where it says "PIN" below. 
 Beaware that the telnet port will still be open. You might want to repeat 
 step 1 with `nvram_set FactoryMode 0` again. **It seems that the device token
-changes with every reboot, though. So keep it open.**
+changes every day, though. So keep it open.**
 
 ### Usage
 
@@ -125,6 +125,11 @@ we can just get it from telnet when needed.
 Helper function to connect to telnet and extract device info from telnet. Will return an object with 
 model, mac and hardwareVersion, firmwareVersion, softwareVersion as properties. 
 
+###### setPin
+You can start the device with a wrong / without PIN and query MAC/deviceId already. Whit the setPin function you can
+change the Pin that the library uses to authenticate with the device, so you do not have to recreate the connection in
+those cases.
+
 ###### login
 Logs in to the device. Will call connect, if not already done. Returns promise.
 
@@ -168,6 +173,10 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### 0.4.0 (2020-06-01)
+* added possibility to change / setPin on existing device (locally!)
+* improved exceptions by reporting error code.
+
 ### 0.3.0 (2020-05-30)
 * added getDeviceInfoFromTelnet function
 * fixed ping functionality.

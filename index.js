@@ -279,7 +279,14 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             }]
         });
         if (message.code !== 0) {
-            throw new Error(`API Error ${message.code}: ${message.message}`);
+            const error = new Error(`API Error ${message.code}: ${message.message}`);
+            // @ts-ignore - no code property in message...
+            error.code = message.code;
+            if (message.code === 424) {
+                // @ts-ignore - no code property in message...
+                error.code = 403; //make invalid credentials more clear.
+            }
+            throw error;
         }
         return message.setting; //array of settings -> should be all for w245?
     }
@@ -399,6 +406,15 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         this._device.connected = true;
         this._device.debug('Connection successful.');
         return true;
+    }
+
+    /**
+     * Allows to change the pin later on. Will clear token so a new one is generated.
+     * @param {string} newPin
+     */
+    setPin(newPin) {
+        this._device.token = '';
+        this._device.pin = newPin;
     }
 
     /**

@@ -1,6 +1,6 @@
 {
   "name": "dlink_websocketclient",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Interface myDlink DSP-W115 and DSP-W245 (and others like DSP-W118?) using node.js",
   "author": {
     "name": "Garfonso",
