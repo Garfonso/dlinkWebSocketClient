@@ -400,12 +400,16 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         }
         this._device.debug('Connected. Signing in.');
         const message = await this._sendJsonAsync({command: 'sign_in'});
-        this._device.salt = message.salt;
-        this._device.deviceId = message.device_id;
-        this._device.shortId = this._device.deviceId.substring(this._device.deviceId.length - 4);
-        this._device.connected = true;
-        this._device.debug('Connection successful.');
-        return true;
+        try {
+            this._device.salt = message.salt;
+            this._device.deviceId = message.device_id;
+            this._device.shortId = this._device.deviceId.substring(this._device.deviceId.length - 4);
+            this._device.connected = true;
+            this._device.debug('Connection successful.');
+            return true;
+        } catch (e) {
+            throw new Error('Could not process login answer, got this answer: ' + JSON.stringify(message));
+        }
     }
 
     /**
