@@ -173,6 +173,11 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### 0.4.2 (2021-11-23)
+* update dependencies.
+* improve error handling on login.
+* improve switch.js example
+
 ### 0.4.0 (2020-06-01)
 * added possibility to change / setPin on existing device (locally!)
 * improved exceptions by reporting error code.
