@@ -32,7 +32,7 @@ async function main() {
     console.log('Signed in!');
 
     console.log('Getting state');
-    let state = await client.state();
+    let state = await client.state(index);
     console.log('Socket is ' + (state ? 'on' : 'off'));
 
     const newValue = await client.switch(value === 1, index);
