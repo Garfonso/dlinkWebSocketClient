@@ -173,7 +173,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
-### __WORK IN PROGRESS__
+### 0.5.0 (2022-08-30)
 * add / repair support for multiple sockets.
 
 ### 0.4.2 (2021-11-23)
