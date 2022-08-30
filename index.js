@@ -107,7 +107,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     connect() {
         let resolved = false;
         return new Promise((resolve, reject) => {
-            this._device.socket = new WebSocket('https://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
+            this._device.socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
                 protocolVersion: 13,
                 rejectUnauthorized: false,
                 timeout: 5000
