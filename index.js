@@ -2,10 +2,21 @@
 const crypto = require('crypto');
 const WebSocket = require('ws');
 const EventEmitter = require('events');
+const util = require('util');
 
-//some constants:
+//type constants:
 const TYPE_SOCKET = 16;
 const TYPE_LED = 41;
+//still unknown types, but used in app:
+// 1, 2, 30, 33, 34 => extract only id.
+// 61, 62: reads metadata and from that idx and type.. but not value (?)
+// 500, 501: ready type from metadata
+// 39, 42, 43, 45, 46: reads "total" & "free" from metadata.
+// 70, 73, 74, 76, 77: reads "total" & "free" & "mount_path" from metadata.
+// 60: reads id and mydlink_no
+// 10000: seems to be text message?
+// 22, 400: "model", "nickname", "photo_index" read from event.
+// 1, 4, 0: code from message and if fitting (?) channel_url and some more stuff.
 
 /**
  * @typedef WebSocketClean
@@ -66,7 +77,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     _receiveData(data) {
         this.emit('message', data);
         const message = JSON.parse(data);
-        this._device.debug('Got message: ', message);
+        this._device.debug('Got message: ', util.inspect(message, {showHidden: false, depth: null, colors: true}));
         if (message.command === 'event' && message.event && message.event.metadata) {
             if (message.event.metadata.type === TYPE_SOCKET) {
                 this._device.debug(`Socket ${message.event.metadata.idx} now ${message.event.metadata.value}`);
@@ -175,8 +186,8 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     _buildJSON(data) {
         const d = data || {};
         this._device.sequence += 1;
-        d.sequence_id = this._device.sequence; // Does not matter.
-        d.local_cid = 41556;  // Does not matter.
+        d.sequence_id = this._device.sequence;
+        d.local_cid = this._device.localCid;
         d.timestamp = Math.round(Date.now() / 1000);
         d.client_id = '';
         if (this._device.deviceId) {
@@ -266,16 +277,39 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     }
 
     /**
+     * @typedef MetaDataSingle
+     * @type {object}
+     * @property {number} [idx]
+     * @property {number} value
+     */
+    /**
+     * @typedef MetaDataMultiple
+     * @type {object}
+     * @property {Array<{idx: number, metadata: {value: number}}>} value
+     */
+    /**
+     * Result of get settings call, settings[0] will always be filled with this. Either one medatada.value or an array of metadata.values with idx and metadata.value for socket state.
+     * @typedef SettingsResult
+     * @type {object}
+     * @property {number} type
+     * @property {number} [uid]
+     * @property {number} idx
+     * @property {MetaDataSingle|MetaDataMultiple} metadata
+     */
+
+    /**
      * Gets device status of type
      * @param {number} type led or socket supported.
-     * @returns {Promise<Array<{uid: number, metadata: {value: number}, idx: number, type: number}>>}
+     * @param {number} [socket] socket to get setting for.
+     * @returns {Promise<Array<SettingsResult>>}
      * @private
      */
-    async _getSetting(type){
+    async _getSetting(type, socket = 0){
         const message = await this._sendJsonAsync({
             command: 'get_setting',
             setting:[{
-                type: type
+                type: type,
+                idx: socket
             }]
         });
         if (message.code !== 0) {
@@ -399,10 +433,12 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             await this.getTokenFromTelnet();
         }
         this._device.debug('Connected. Signing in.');
-        const message = await this._sendJsonAsync({command: 'sign_in'});
+        //scope found in app on 2022-01-03
+        const message = await this._sendJsonAsync({command: 'sign_in', scope:['user', 'device:status', 'device:control', 'viewing', 'photo', 'policy', 'client', 'event']});
         try {
             this._device.salt = message.salt;
             this._device.deviceId = message.device_id;
+            this._device.localCid = message.local_cid;
             this._device.shortId = this._device.deviceId.substring(this._device.deviceId.length - 4);
             this._device.connected = true;
             this._device.debug('Connection successful.');
@@ -436,6 +472,9 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @returns {Promise<boolean>} new state
      */
     async switch(on, socket = 0) {
+        if (socket < 0) {
+            throw new Error('Can not set socket ' + socket + '. Please supply positive index.');
+        }
         return this._setSetting(on ? 1 : 0, socket, TYPE_SOCKET);
     }
 
@@ -455,15 +494,32 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @returns {Promise<boolean|Array<boolean>>}
      */
     async state (socket = 0) {
-        const settings = await this._getSetting(TYPE_SOCKET);
+        const settings = await this._getSetting(TYPE_SOCKET, socket);
         if (socket >= 0) {
-            return settings[socket].metadata.value === 1;
+            //seems to be 0 anyway..
+            return settings[0].metadata.value === 1;
         }
         const result = [];
-        for (const s of settings) {
-            result.push(s.metadata.value === 1);
+        const metadata = /** @type MetaDataMultiple */ (settings[0].metadata);
+        for (const value of metadata.value) {
+            result[value.idx] = value.metadata.value === 1;
         }
         return result;
+    }
+
+    /**
+     * For development needs.. try new / unknown methods.
+     * @param command
+     * @param parameters
+     * @returns {Promise<Record<string, *>>}
+     */
+    async testCommand(command, parameters = {}) {
+        parameters.command = command;
+        if (!this._device.connected) {
+            this._device.debug('Need to build connection, doing that.');
+            await this.connect();
+        }
+        return await this._sendJsonAsync(parameters);
     }
 }
 

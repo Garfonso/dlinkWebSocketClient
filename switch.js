@@ -3,6 +3,8 @@
  * node switch.js IP PIN 0/1 [Index]
  */
 
+const util = require('util');
+
 const WebSocketClient = require('./index');
 
 if (process.argv.length < 5) {
@@ -21,19 +23,26 @@ async function main() {
         ip: ip,
         pin: pin,
         useTelnetForToken: pin === 'TELNET',
-        log: () => {}
+        log: console.log
     });
 
     client.on('switched', (newState, socket) => {
         console.log(`Socket ${socket} switched to ${newState}`);
     });
-
     await client.login();
     console.log('Signed in!');
 
+
     console.log('Getting state');
     let state = await client.state(index);
-    console.log('Socket is ' + (state ? 'on' : 'off'));
+    if (state instanceof Array) {
+        console.log('Socket states: ', state);
+    } else {
+        console.log('Socket is ' + (state ? 'on' : 'off'));
+    }
+
+    //await client.switchLED(value === 1, index);
+    //console.log(util.inspect(result, {showHidden: false, depth: null, colors: true}));
 
     const newValue = await client.switch(value === 1, index);
     console.log('Socket now is ' + (newValue ? 'on' : 'off'));
