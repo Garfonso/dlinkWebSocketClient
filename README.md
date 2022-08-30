@@ -173,6 +173,9 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### __WORK IN PROGRESS__
+* add / repair support for multiple sockets.
+
 ### 0.4.2 (2021-11-23)
 * update dependencies.
 * improve error handling on login.
