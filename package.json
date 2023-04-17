@@ -20,14 +20,16 @@
     "url": "https://github.com/Garfonso/dlinkWebSocketClient"
   },
   "dependencies": {
-    "ws": "^8.8.1"
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^3.5.9",
-    "@types/node": "^18.7.14"
+    "@types/node": "^18.7.14",
+    "eslint": "^8.38.0"
   },
   "scripts": {
-    "release": "release-script"
+    "release": "release-script",
+    "lint": "eslint index.js"
   },
   "main": "index.js",
   "readmeFilename": "README.md"
