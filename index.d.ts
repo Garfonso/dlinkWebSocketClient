@@ -1,7 +1,7 @@
 import {EventEmitter} from 'events';
 
 declare module 'dlink_websocketclient' {
-    export class WebSocketClient extends EventEmitter.EventEmitter {
+    class WebSocketClient extends EventEmitter.EventEmitter {
         constructor(options: {
             /**
              * ip of device as string
