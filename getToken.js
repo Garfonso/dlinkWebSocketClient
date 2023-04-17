@@ -6,7 +6,7 @@ if (!process.argv[2]) {
     process.exit(-2);
 }
 const s = net.createConnection(23, process.argv[2], () => {
-    console.log("Connected.");
+    console.log('Connected.');
 });
 
 s.on('data', buffer => {

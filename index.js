@@ -4,6 +4,8 @@ const WebSocket = require('ws');
 const EventEmitter = require('events');
 const util = require('util');
 
+/* globals Buffer */
+
 //type constants:
 const TYPE_SOCKET = 16;
 const TYPE_LED = 41;
@@ -17,19 +19,6 @@ const TYPE_LED = 41;
 // 10000: seems to be text message?
 // 22, 400: "model", "nickname", "photo_index" read from event.
 // 1, 4, 0: code from message and if fitting (?) channel_url and some more stuff.
-
-/**
- * @typedef WebSocketClean
- * @type {Object}
- * @property {function} send
- * @property {number} readyState
- * @property {function} ping
- * @property {function} close
- * @property {function} terminate
- *
- * @typedef {import("net").Socket} Socket
- * @typedef {WebSocketClean & Socket} WebSocket
- */
 
 function noop() {}
 
@@ -60,7 +49,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             deviceToken: '',
             deviceId: '',
             salt: '',
-            socket: /** @type {WebSocket} */ ({}),
+            socket: {},
             pingHandler: /** @type {NodeJS.Timeout|undefined} */ (undefined),
             sequence: 1000,
             state: [false],
@@ -107,8 +96,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     connect() {
         let resolved = false;
         return new Promise((resolve, reject) => {
-            this._device.socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
-                protocolVersion: 13,
+            this._device.socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', ['13'], {
                 rejectUnauthorized: false,
                 timeout: 5000
             });
