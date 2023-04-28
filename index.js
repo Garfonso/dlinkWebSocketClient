@@ -96,7 +96,8 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     connect() {
         let resolved = false;
         return new Promise((resolve, reject) => {
-            this._device.socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', ['13'], {
+            this._device.socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
+                // @ts-ignore -> we need to ignore here, because we must not set subprotocols, server does not set subprotocols, so we can't either or we get an error "Server sent no subprotocol" and connection is closed by ws. The code currently accepts omitting the subprotocols this way, even if the type definitions don't allow it.
                 rejectUnauthorized: false,
                 timeout: 5000
             });
