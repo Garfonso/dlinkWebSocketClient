@@ -173,6 +173,9 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### __WORK IN PROGRESS__
+* fix d.ts
+
 ### 0.5.2 (2023-04-17)
 * add d.ts for typescript support.
 
