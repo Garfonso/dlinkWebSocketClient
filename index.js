@@ -140,9 +140,20 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * Ends socket connection
      */
     disconnect() {
-        if (this._device.socket) {
-            this._device.socket.close();
-            setTimeout(this._device.socket.terminate, 500); //force close after some time.
+        const socket = this._device.socket; //keep copy of socket here. Might want to reconnect, then terminate is not good, might be called on new socket.
+        if (socket && typeof socket.close === 'function') {
+            socket.close();
+            this._device.debug('Socket closing, demanded by calling diconnect()');
+            setTimeout(() => {
+                if (socket && socket.terminate === 'function') {
+                    try {
+                        socket.terminate();
+                        this._device.debug('Socket terminated, demanded by calling diconnect()');
+                    } catch (e) {
+                        this._device.debug('Could not terminate socket: ' + e.stack);
+                    }
+                }
+            }, 500); //force close after some time
         }
         if (this._device.pingHandler) {
             clearTimeout(this._device.pingHandler);
