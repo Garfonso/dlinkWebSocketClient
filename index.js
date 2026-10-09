@@ -33,6 +33,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @property {string} [model] either w115 or w245.
      * @property {function} [log] function for debug logging, defaults to noop.
      * @property {number} [keepAlive] seconds to ping, defaults to 30. 0 to turn off.
+     * @property {number} [timeout] seconds to wait for the answer to a request, defaults to 10. 0 to turn off.
      * @property {boolean} [useTelnetForToken] library should get the device token from telnet (which needs to be active).
      *
      * @param {Parameters} opt - parameters, must have url, user and password.
@@ -46,6 +47,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             port: opt.port || 8080,
             debug: opt.log || noop,
             keepAlive: opt.keepAlive || 30,
+            timeout: opt.timeout ?? 10,
             token: '',
             deviceId: '',
             salt: '',
@@ -266,7 +268,12 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     _sendJsonAsync(data) {
         return new Promise((resolve, reject) => {
             let expectedSequence = -1;
+            /** @type {NodeJS.Timeout|undefined} */
+            let timeoutHandle;
             const cleanUp = () => {
+                if (timeoutHandle) {
+                    clearTimeout(timeoutHandle);
+                }
                 this.removeListener('message', handleMessage);
                 this.removeListener('close', handleClose);
                 this.removeListener('error', handleError);
@@ -310,6 +317,16 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             } catch (e) {
                 cleanUp();
                 reject(e);
+                return;
+            }
+            if (this._device.timeout > 0) {
+                timeoutHandle = setTimeout(() => {
+                    cleanUp();
+                    const error = new Error(`No answer to ${data.command} within ${this._device.timeout} seconds.`);
+                    // @ts-ignore - no code property in Error...
+                    error.code = 'ETIMEDOUT';
+                    reject(error);
+                }, this._device.timeout * 1000);
             }
         });
     }

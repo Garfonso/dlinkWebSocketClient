@@ -108,7 +108,8 @@ interface Parameters {
  port: number, //optional defaults to 8080
  model: string, //optional either w115 or w245.
  log: function, //optional, pass function for debug logging, defaults to noop.
- keepAlive: number, //options, interval in seconds to ping. Defaults to 30. Use 0 to turn off.
+ keepAlive: number, //options, interval in seconds to ping. Defaults to 30. Use 0 to turn off. If a ping is not answered until the next one is due, the connection is closed.
+ timeout: number, //optional, seconds to wait for the answer to a request. Defaults to 10. Use 0 to turn off.
  useTelnetForToken: boolean //if true, in the login command, the library will try to get the token by connecting via telnet.
 }
 ```

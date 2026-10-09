@@ -33,6 +33,11 @@ declare class WebSocketClient extends EventEmitter.EventEmitter {
         keepAlive?: number;
 
         /**
+         * seconds to wait for the answer to a request, defaults to 10. 0 to turn off.
+         */
+        timeout?: number;
+
+        /**
          * library should get the device token from telnet (which needs to be active).
          */
         useTelnetForToken?: boolean;
