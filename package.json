@@ -20,7 +20,7 @@
     "url": "git+https://github.com/Garfonso/dlinkWebSocketClient.git"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "ws": "^8.22.0"
@@ -29,7 +29,7 @@
     "@alcalzone/release-script": "^5.2.1",
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",
-    "@types/node": "^20.19.43",
+    "@types/node": "^22.20.5",
     "eslint": "^10.12.0",
     "globals": "^17.13.0",
     "selfsigned": "^5.5.0",

@@ -184,7 +184,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 * fix: timeout for connecting and forced close on disconnect did not work.
 * fix: keepAlive 0 did not turn off pings.
 * fix: errors of switch and switchLED have an error code now.
-* update dependencies, requires node 18 or newer.
+* update dependencies, requires node 22 or newer.
 * add tests, type check and CI workflow.
 
 ### 0.5.5 (2023-05-15)
