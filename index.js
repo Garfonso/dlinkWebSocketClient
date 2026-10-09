@@ -357,7 +357,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             }]
         });
         if (message.code !== 0) {
-            throw new Error(`API Error ${message.code}: ${message.message}`);
+            throw this._apiError(message);
         }
         return message.setting[0].metadata.value === 1; //array of settings -> we switch one by one. So it should always be just one?
     }
@@ -384,6 +384,19 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      */
 
     /**
+     * Creates error for an answer with error code.
+     * @param {Record<string, any>} message answer of device
+     * @returns {Error}
+     * @private
+     */
+    _apiError(message) {
+        const error = new Error(`API Error ${message.code}: ${message.message}`);
+        // @ts-ignore - no code property in Error...
+        error.code = message.code === 424 ? 403 : message.code; //make invalid credentials more clear.
+        return error;
+    }
+
+    /**
      * Gets device status of type
      * @param {number} type led or socket supported.
      * @param {number} [socket] socket to get setting for.
@@ -399,14 +412,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             }]
         });
         if (message.code !== 0) {
-            const error = new Error(`API Error ${message.code}: ${message.message}`);
-            // @ts-ignore - no code property in message...
-            error.code = message.code;
-            if (message.code === 424) {
-                // @ts-ignore - no code property in message...
-                error.code = 403; //make invalid credentials more clear.
-            }
-            throw error;
+            throw this._apiError(message);
         }
         return message.setting; //array of settings -> should be all for w245?
     }
