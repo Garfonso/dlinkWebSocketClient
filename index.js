@@ -51,6 +51,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             salt: '',
             socket: {},
             pingHandler: /** @type {NodeJS.Timeout|undefined} */ (undefined),
+            awaitingPong: false,
             sequence: 1000,
             state: [false],
             useTelnetForToken: opt.useTelnetForToken
@@ -77,17 +78,40 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         }
     }
 
+    /**
+     * Sends a ping and checks that the previous ping was answered. If not, the connection is dead (e.g. device lost
+     * power or wifi) and the socket is terminated, which emits 'close'. Without this, a dead connection is only noticed
+     * after the TCP timeout, which takes minutes.
+     * @private
+     */
     _ping() {
+        this._stopPing();
+        const socket = this._device.socket;
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            return; //no connection, no need to ping. Will be started again on next connect.
+        }
+        if (this._device.awaitingPong) {
+            this._device.debug('No answer to last ping, connection seems to be dead. Terminating socket.');
+            socket.terminate();
+            return;
+        }
+        const data = {
+            command: 'keep_alive'
+        };
+        this._device.awaitingPong = true;
+        socket.ping(JSON.stringify(data));
+        this._device.pingHandler = setTimeout(this._ping.bind(this), this._device.keepAlive * 1000);
+    }
+
+    /**
+     * Stops sending pings.
+     * @private
+     */
+    _stopPing() {
         if (this._device.pingHandler) {
             clearTimeout(this._device.pingHandler);
+            this._device.pingHandler = undefined;
         }
-        if (this._device.socket && this._device.socket.readyState === WebSocket.OPEN) {
-            const data = {
-                command: 'keep_alive'
-            };
-            this._device.socket.ping(JSON.stringify(data));
-        }
-        this._device.pingHandler = setTimeout(this._ping.bind(this), this._device.keepAlive * 1000);
     }
 
     /**
@@ -103,6 +127,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             });
             this._device.socket.on('close', (code, reason) => {
                 this._device.debug('Socket closed: ' + reason + '(' + code + ')');
+                this._stopPing();
                 this._device.connected = false;
                 if (resolved) {
                     this.emit('close', code, reason);
@@ -123,16 +148,19 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             });
             this._device.socket.on('open', () => {
                 this._device.debug('Socket open');
+                if (this._device.keepAlive > 0) {
+                    this._device.awaitingPong = false;
+                    this._ping();
+                }
                 resolve(true);
                 resolved = true;
                 this.emit('ready');
             });
+            this._device.socket.on('pong', () => {
+                this._device.awaitingPong = false;
+            });
             this._device.socket.on('message', this._receiveData.bind(this));
             this._device.socket.on('unexpected-response', (request, response) => this._device.debug('Unexpected response: ', response, 'to', request));
-
-            if (this._device.keepAlive > 0) {
-                this._ping();
-            }
         });
     }
 
@@ -155,9 +183,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                 }
             }, 500); //force close after some time
         }
-        if (this._device.pingHandler) {
-            clearTimeout(this._device.pingHandler);
-        }
+        this._stopPing();
         this._device.connected = false;
     }
 
