@@ -158,6 +158,15 @@ value. It defaults to 0, so state of first socket is returned. Set to -1 to
 get the results of all sockets as array of booleans.
 Returns a promise.
 
+#### Errors
+Errors have a `code` property. Network errors keep the code of node (e.g. `ECONNREFUSED`), timeouts have
+`ETIMEDOUT`, requests while not connected `ENOTCONN`. Errors reported by the device have the code of the
+device, except for 424 (invalid device token) which is reported as 403.
+
+The device locks itself for 10 minutes after 10 requests with an invalid device token within 10 minutes
+(found in the decompiled firmware of the DSP-W245). While locked, it answers `sign_in` with code 34 (invalid access
+right). This affects all clients, including the app. So do not retry requests with a wrong pin in short intervals.
+
 #### Contribution
 Contribution is very welcome. @jonassjoh learned about the protocol by reverse engineering 
 da_adaptor binary in the firmware. I tried to poke around a bit there, too, but failed. If you
@@ -174,6 +183,9 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### __WORK IN PROGRESS__
+* docs: describe error codes and the lock of the device after too many invalid tokens.
+
 ### 0.6.1 (2026-10-09)
 * fix: connection errors during connect have a code now (e.g. ETIMEDOUT on handshake timeout, ECONNRESET if the socket was closed before it was open).
 * fix: report refused sign in as API error with the code of the device.
