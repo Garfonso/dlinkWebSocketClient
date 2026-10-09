@@ -53,7 +53,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             salt: '',
             socket: {},
             pingHandler: /** @type {NodeJS.Timeout|undefined} */ (undefined),
-            awaitingPong: false,
+            pingSocket: /** @type {WebSocket|undefined} */ (undefined),
             sequence: 1000,
             state: [false],
             useTelnetForToken: opt.useTelnetForToken
@@ -87,9 +87,10 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     }
 
     /**
-     * Sends a ping and checks that the previous ping was answered. If not, the connection is dead (e.g. device lost
+     * Sends a keep_alive command and checks that it is answered. If not, the connection is dead (e.g. device lost
      * power or wifi) and the socket is terminated, which emits 'close'. Without this, a dead connection is only noticed
-     * after the TCP timeout, which takes minutes.
+     * after the TCP timeout, which takes minutes. Websocket pings can not be used for this, the device does not answer
+     * them.
      * @private
      */
     _ping() {
@@ -98,24 +99,25 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         if (!socket || socket.readyState !== WebSocket.OPEN) {
             return; //no connection, no need to ping. Will be started again on next connect.
         }
-        if (this._device.awaitingPong) {
-            this._device.debug('No answer to last ping, connection seems to be dead. Terminating socket.');
-            socket.terminate();
-            return;
-        }
-        const data = {
-            command: 'keep_alive'
-        };
-        this._device.awaitingPong = true;
-        socket.ping(JSON.stringify(data));
-        this._device.pingHandler = setTimeout(this._ping.bind(this), this._device.keepAlive * 1000);
+        this._device.pingSocket = socket;
+        this._sendJsonAsync({command: 'keep_alive'}, this._device.keepAlive).then(() => {
+            if (this._device.pingSocket === socket) { //not stopped or reconnected meanwhile.
+                this._device.pingHandler = setTimeout(this._ping.bind(this), this._device.keepAlive * 1000);
+            }
+        }, (e) => {
+            if (this._device.pingSocket === socket && socket.readyState === WebSocket.OPEN) {
+                this._device.debug('No answer to keep_alive, connection seems to be dead. Terminating socket. ' + e.message);
+                socket.terminate();
+            }
+        });
     }
 
     /**
-     * Stops sending pings.
+     * Stops sending keep_alive commands.
      * @private
      */
     _stopPing() {
+        this._device.pingSocket = undefined;
         if (this._device.pingHandler) {
             clearTimeout(this._device.pingHandler);
             this._device.pingHandler = undefined;
@@ -169,17 +171,11 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             socket.on('open', () => {
                 this._device.debug('Socket open');
                 if (this._device.keepAlive > 0) {
-                    this._device.awaitingPong = false;
                     this._ping();
                 }
                 resolve(true);
                 resolved = true;
                 this.emit('ready');
-            });
-            socket.on('pong', () => {
-                if (isCurrent()) {
-                    this._device.awaitingPong = false;
-                }
             });
             socket.on('message', (data) => {
                 if (isCurrent()) {
@@ -266,10 +262,11 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     /**
      * Sends command JSON asynchronoulsy. Resolves with incomming message or is rejected with error,
      * @param data
+     * @param {number} [timeout] seconds to wait for the answer, defaults to timeout option. 0 to wait forever.
      * @returns {Promise<Record<string, any>>}
      * @private
      */
-    _sendJsonAsync(data) {
+    _sendJsonAsync(data, timeout = this._device.timeout) {
         return new Promise((resolve, reject) => {
             let expectedSequence = -1;
             /** @type {NodeJS.Timeout|undefined} */
@@ -323,14 +320,14 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                 reject(e);
                 return;
             }
-            if (this._device.timeout > 0) {
+            if (timeout > 0) {
                 timeoutHandle = setTimeout(() => {
                     cleanUp();
-                    const error = new Error(`No answer to ${data.command} within ${this._device.timeout} seconds.`);
+                    const error = new Error(`No answer to ${data.command} within ${timeout} seconds.`);
                     // @ts-ignore - no code property in Error...
                     error.code = 'ETIMEDOUT';
                     reject(error);
-                }, this._device.timeout * 1000);
+                }, timeout * 1000);
             }
         });
     }

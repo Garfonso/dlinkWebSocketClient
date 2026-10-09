@@ -17,19 +17,24 @@ const servers = [];
 
 /**
  * Starts a fake device. It sends a new salt on every sign in and checks the device token.
- * @param {boolean} autoPong answer pings
+ * Like the real device, it does not answer websocket pings.
+ * @param {boolean} answerKeepAlive answer keep_alive commands
  * @returns {Promise<{port: number, wss: WebSocketServer}>}
  */
-async function startFakeDevice(autoPong) {
+async function startFakeDevice(answerKeepAlive) {
     const pems = await selfsigned.generate([{ name: 'commonName', value: 'localhost' }], { keySize: 2048 });
     const server = https.createServer({ key: pems.private, cert: pems.cert });
-    const wss = new WebSocketServer({ server, path: '/SwitchCamera', autoPong });
+    const wss = new WebSocketServer({ server, path: '/SwitchCamera', autoPong: false });
     wss.on('connection', ws => {
         let salt = '';
         ws.on('message', raw => {
             const message = JSON.parse(raw.toString());
             const answer = { command: message.command, sequence_id: message.sequence_id, code: 0 };
-            if (message.command === 'sign_in') {
+            if (message.command === 'keep_alive') {
+                if (!answerKeepAlive) {
+                    return;
+                }
+            } else if (message.command === 'sign_in') {
                 salt = crypto.randomBytes(16).toString('hex');
                 Object.assign(answer, { salt, device_id: DEVICE_ID, local_cid: 1 });
             } else {
@@ -54,12 +59,12 @@ async function startFakeDevice(autoPong) {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 let device;
-let deviceWithoutPong;
+let deviceWithoutKeepAlive;
 const createClient = (port, options = {}) => new WebSocketClient({ ip: '127.0.0.1', port, pin: PIN, ...options });
 
 before(async () => {
     device = await startFakeDevice(true);
-    deviceWithoutPong = await startFakeDevice(false);
+    deviceWithoutKeepAlive = await startFakeDevice(false);
 });
 
 after(() => {
@@ -99,8 +104,20 @@ test('rejects request without answer after timeout and removes listeners', async
     client.disconnect();
 });
 
-test('closes connection if ping is not answered', async () => {
-    const client = createClient(deviceWithoutPong.port, { keepAlive: 1 });
+test('keeps connection open while keep_alive is answered', async () => {
+    const client = createClient(device.port, { keepAlive: 1 });
+    let closed = false;
+    client.on('close', () => closed = true);
+    await client.login();
+    await sleep(3500);
+    assert.strictEqual(closed, false);
+    assert.strictEqual(client.isDeviceReady(), true);
+    assert.strictEqual(await client.state(), true);
+    client.disconnect();
+});
+
+test('closes connection if keep_alive is not answered', async () => {
+    const client = createClient(deviceWithoutKeepAlive.port, { keepAlive: 1 });
     const closed = new Promise(resolve => client.on('close', resolve));
     await client.login();
     const code = await Promise.race([closed, sleep(5000).then(() => 'no close event')]);
