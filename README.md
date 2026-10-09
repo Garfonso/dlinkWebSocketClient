@@ -174,6 +174,18 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### __WORK IN PROGRESS__
+* fix: generate device token again on every login (requests failed with 'invalid device token' after the device rebooted).
+* fix: detect dead connections by missing pong and close the socket.
+* add: option `timeout` for requests (default 10 seconds).
+* fix: ignore events of previous sockets after reconnect.
+* fix: correct errors for requests if the socket fails or is not connected.
+* fix: do not crash on socket errors without error listener.
+* fix: timeout for connecting and forced close on disconnect did not work.
+* fix: keepAlive 0 did not turn off pings.
+* fix: errors of switch and switchLED have an error code now.
+* update dependencies, requires node 14 or newer.
+
 ### 0.5.5 (2023-05-15)
 * prevent issue with multiple start/stop calls on the same device.
 
