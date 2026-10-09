@@ -174,7 +174,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
-### __WORK IN PROGRESS__
+### 0.6.0 (2026-10-09)
 * fix: generate device token again on every login (requests failed with 'invalid device token' after the device rebooted).
 * fix: detect dead connections and close the socket (keep_alive command instead of websocket ping, which the device does not answer).
 * add: option `timeout` for requests (default 10 seconds).
