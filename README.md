@@ -176,6 +176,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 -->
 ### __WORK IN PROGRESS__
 * fix: connection errors during connect have a code now (e.g. ETIMEDOUT on handshake timeout, ECONNRESET if the socket was closed before it was open).
+* fix: report refused sign in as API error with the code of the device.
 
 ### 0.6.0 (2026-10-09)
 * fix: generate device token again on every login (requests failed with 'invalid device token' after the device rebooted).

@@ -13,7 +13,7 @@ const WebSocketClient = require('../index.js');
 
 const PIN = '123456';
 const DEVICE_ID = 'AABBCCDDEEFF';
-const fakeDevice = { silent: false };
+const fakeDevice = { silent: false, refuseSignIn: false };
 const servers = [];
 
 /**
@@ -35,6 +35,9 @@ async function startFakeDevice(answerKeepAlive) {
                 if (!answerKeepAlive) {
                     return;
                 }
+            } else if (message.command === 'sign_in' && fakeDevice.refuseSignIn) {
+                //real device answered like this sometimes after it was offline.
+                Object.assign(answer, { code: 34, message: 'invalid access right', local_cid: 1 });
             } else if (message.command === 'sign_in') {
                 salt = crypto.randomBytes(16).toString('hex');
                 Object.assign(answer, { salt, device_id: DEVICE_ID, local_cid: 1 });
@@ -191,5 +194,16 @@ test('handshake timeout has code ETIMEDOUT', async () => {
     } finally {
         sockets.forEach(socket => socket.destroy());
         server.close();
+    }
+});
+
+test('refused sign in is reported with code of the device', async () => {
+    const client = createClient(device.port);
+    fakeDevice.refuseSignIn = true;
+    try {
+        await assert.rejects(client.login(), { code: 34, message: 'API Error 34: invalid access right' });
+    } finally {
+        fakeDevice.refuseSignIn = false;
+        client.disconnect();
     }
 });

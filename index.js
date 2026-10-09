@@ -529,6 +529,9 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         this._device.debug('Connected. Signing in.');
         //scope found in app on 2022-01-03
         const message = await this._sendJsonAsync({command: 'sign_in', scope:['user', 'device:status', 'device:control', 'viewing', 'photo', 'policy', 'client', 'event']});
+        if (message.code !== 0) {
+            throw this._apiError(message);
+        }
         try {
             this._device.salt = message.salt;
             //the device sends a new salt on every sign in (e.g. after it rebooted), so the token needs to be generated again.
