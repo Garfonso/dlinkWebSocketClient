@@ -183,7 +183,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
-### __WORK IN PROGRESS__
+### 0.6.2 (2026-10-09)
 * fix: use the new salt the device sends with an invalid device token answer.
 * docs: describe error codes and the lock of the device after too many invalid tokens.
 
