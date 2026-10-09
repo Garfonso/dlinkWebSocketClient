@@ -46,7 +46,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             model: opt.model || '',
             port: opt.port || 8080,
             debug: opt.log || noop,
-            keepAlive: opt.keepAlive || 30,
+            keepAlive: opt.keepAlive ?? 30,
             timeout: opt.timeout ?? 10,
             token: '',
             deviceId: '',
