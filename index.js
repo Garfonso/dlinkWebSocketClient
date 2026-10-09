@@ -160,7 +160,11 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                     return;
                 }
                 this._device.connected = false;
-                this.emit('error', e);
+                //EventEmitter throws on 'error' without listener, which would crash the process (e.g. if the user
+                //removed its listeners while disconnecting). The socket is closed anyway, which emits 'close'.
+                if (this.listenerCount('error') > 0) {
+                    this.emit('error', e);
+                }
             });
             socket.on('open', () => {
                 this._device.debug('Socket open');
