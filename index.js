@@ -392,6 +392,12 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @private
      */
     _apiError(message) {
+        if (message.code === 424 && message.salt) {
+            //device sends a new salt with an invalid token answer, so the next request can use a valid token without
+            //signing in again. Each invalid token counts towards the lock of the device (see README).
+            this._device.salt = message.salt;
+            this._device.token = '';
+        }
         const error = new Error(`API Error ${message.code}: ${message.message}`);
         // @ts-ignore - no code property in Error...
         error.code = message.code === 424 ? 403 : message.code; //make invalid credentials more clear.

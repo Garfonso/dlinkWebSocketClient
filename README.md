@@ -184,6 +184,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	### __WORK IN PROGRESS__
 -->
 ### __WORK IN PROGRESS__
+* fix: use the new salt the device sends with an invalid device token answer.
 * docs: describe error codes and the lock of the device after too many invalid tokens.
 
 ### 0.6.1 (2026-10-09)

@@ -47,7 +47,9 @@ async function startFakeDevice(answerKeepAlive) {
                 }
                 const token = DEVICE_ID + '-' + crypto.createHash('sha1').update(PIN).update(salt).digest('hex');
                 if (message.device_token !== token) {
-                    Object.assign(answer, { code: 424, message: 'invalid device token' });
+                    //like the real device, send a new salt.
+                    salt = crypto.randomBytes(16).toString('hex');
+                    Object.assign(answer, { code: 424, message: 'invalid device token', salt });
                 } else {
                     answer.setting = [{ type: 16, idx: 0, metadata: { value: 1 } }];
                 }
@@ -168,9 +170,8 @@ test('keepAlive 0 turns off pings', async () => {
 });
 
 test('invalid device token is reported with code 403', async () => {
-    const client = createClient(device.port);
+    const client = createClient(device.port, { pin: '000000' });
     await client.login();
-    client._device.token = 'wrong';
     await assert.rejects(client.state(), { code: 403 });
     await assert.rejects(client.switch(true), { code: 403 });
     client.disconnect();
@@ -206,4 +207,13 @@ test('refused sign in is reported with code of the device', async () => {
         fakeDevice.refuseSignIn = false;
         client.disconnect();
     }
+});
+
+test('uses new salt of invalid token answer for next request', async () => {
+    const client = createClient(device.port);
+    await client.login();
+    client._device.token = DEVICE_ID + '-0000000000000000000000000000000000000000';
+    await assert.rejects(client.state(), { code: 403 });
+    assert.strictEqual(await client.state(), true);
+    client.disconnect();
 });
