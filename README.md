@@ -174,7 +174,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
-### __WORK IN PROGRESS__
+### 0.6.1 (2026-10-09)
 * fix: connection errors during connect have a code now (e.g. ETIMEDOUT on handshake timeout, ECONNRESET if the socket was closed before it was open).
 * fix: report refused sign in as API error with the code of the device.
 
