@@ -25,7 +25,7 @@ declare class WebSocketClient extends EventEmitter.EventEmitter {
         /**
          * function for debug logging, defaults to noop.
          */
-        log?: (string) => void;
+        log?: (...args: any[]) => void;
 
         /**
          * seconds to ping, defaults to 30. 0 to turn off.

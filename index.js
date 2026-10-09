@@ -75,7 +75,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             return;
         }
         this.emit('message', data);
-        this._device.debug('Got message: ', util.inspect(message, {showHidden: false, depth: null, colors: true}));
+        this._device.debug('Got message: ', util.inspect(message, {showHidden: false, depth: null, colors: false}));
         if (message.command === 'event' && message.event && message.event.metadata) {
             if (message.event.metadata.type === TYPE_SOCKET) {
                 this._device.debug(`Socket ${message.event.metadata.idx} now ${message.event.metadata.value}`);
