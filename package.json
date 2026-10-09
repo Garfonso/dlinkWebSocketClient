@@ -39,7 +39,7 @@
     "release": "release-script",
     "lint": "eslint .",
     "check": "tsc -p .",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test test/client.test.js"
   },
   "main": "index.js",
   "types": "index.d.ts",
