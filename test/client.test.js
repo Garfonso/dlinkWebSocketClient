@@ -5,6 +5,7 @@
 const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const https = require('https');
+const net = require('net');
 const crypto = require('crypto');
 const selfsigned = require('selfsigned');
 const { WebSocketServer } = require('ws');
@@ -170,4 +171,25 @@ test('invalid device token is reported with code 403', async () => {
     await assert.rejects(client.state(), { code: 403 });
     await assert.rejects(client.switch(true), { code: 403 });
     client.disconnect();
+});
+
+test('connection errors have a code', async () => {
+    const server = net.createServer();
+    await new Promise(resolve => server.listen(0, resolve));
+    const port = server.address().port;
+    await new Promise(resolve => server.close(resolve));
+    await assert.rejects(createClient(port).login(), { code: 'ECONNREFUSED' });
+});
+
+test('handshake timeout has code ETIMEDOUT', async () => {
+    //accepts tcp connections, but never answers.
+    const sockets = [];
+    const server = net.createServer(socket => sockets.push(socket));
+    await new Promise(resolve => server.listen(0, resolve));
+    try {
+        await assert.rejects(createClient(server.address().port).login(), { code: 'ETIMEDOUT' });
+    } finally {
+        sockets.forEach(socket => socket.destroy());
+        server.close();
+    }
 });

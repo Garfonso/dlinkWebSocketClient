@@ -139,7 +139,10 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             socket.on('close', (code, reason) => {
                 this._device.debug('Socket closed: ' + reason + '(' + code + ')');
                 if (!resolved) {
-                    reject(new Error(`Socket closed: ${reason} (${code})`));
+                    const error = new Error(`Socket closed: ${reason} (${code})`);
+                    // @ts-ignore
+                    error.code = 'ECONNRESET';
+                    reject(error);
                     resolved = true;
                 }
                 if (!isCurrent()) {
@@ -152,7 +155,11 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             socket.on('error', (e) => {
                 this._device.debug('Socket error:', e);
                 if (!resolved) {
-                    reject(new Error('Socket error: ' + e));
+                    const error = new Error('Socket error: ' + e.message, { cause: e });
+                    //ws does not set a code on handshake timeout.
+                    // @ts-ignore
+                    error.code = e.code ?? (/handshake has timed out/i.test(e.message) ? 'ETIMEDOUT' : undefined);
+                    reject(error);
                     resolved = true;
                     return;
                 }
