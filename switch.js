@@ -3,8 +3,6 @@
  * node switch.js IP PIN 0/1 [Index]
  */
 
-const util = require('util');
-
 const WebSocketClient = require('./index');
 
 if (process.argv.length < 5) {

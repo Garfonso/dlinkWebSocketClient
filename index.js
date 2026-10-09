@@ -4,8 +4,6 @@ const WebSocket = require('ws');
 const EventEmitter = require('events');
 const util = require('util');
 
-/* globals Buffer */
-
 //type constants:
 const TYPE_SOCKET = 16;
 const TYPE_LED = 41;
@@ -70,7 +68,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         let message;
         try {
             message = JSON.parse(data);
-        } catch (e) {
+        } catch {
             this._device.debug('Could not parse message: ' + data);
             return;
         }
@@ -283,7 +281,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                 let message;
                 try {
                     message = JSON.parse(messageText);
-                } catch (e) {
+                } catch {
                     return; //already logged in _receiveData.
                 }
                 if (message.sequence_id !== expectedSequence) {
@@ -535,7 +533,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             this._device.debug('Connection successful.');
             return true;
         } catch (e) {
-            throw new Error('Could not process login answer, got this answer: ' + JSON.stringify(message));
+            throw new Error('Could not process login answer, got this answer: ' + JSON.stringify(message), { cause: e });
         }
     }
 
