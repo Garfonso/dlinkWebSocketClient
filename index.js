@@ -46,7 +46,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             port: opt.port || 8080,
             debug: opt.log || noop,
             keepAlive: opt.keepAlive || 30,
-            deviceToken: '',
+            token: '',
             deviceId: '',
             salt: '',
             socket: {},
@@ -437,6 +437,8 @@ class WebSocketClient extends EventEmitter.EventEmitter {
         const message = await this._sendJsonAsync({command: 'sign_in', scope:['user', 'device:status', 'device:control', 'viewing', 'photo', 'policy', 'client', 'event']});
         try {
             this._device.salt = message.salt;
+            //the device sends a new salt on every sign in (e.g. after it rebooted), so the token needs to be generated again.
+            this._device.token = '';
             this._device.deviceId = message.device_id;
             this._device.localCid = message.local_cid;
             this._device.shortId = this._device.deviceId.substring(this._device.deviceId.length - 4);
