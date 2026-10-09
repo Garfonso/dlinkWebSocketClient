@@ -120,33 +120,41 @@ class WebSocketClient extends EventEmitter.EventEmitter {
     connect() {
         let resolved = false;
         return new Promise((resolve, reject) => {
-            this._device.socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
+            const socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
                 // @ts-ignore -> we need to ignore here, because we must not set subprotocols, server does not set subprotocols, so we can't either or we get an error "Server sent no subprotocol" and connection is closed by ws. The code currently accepts omitting the subprotocols this way, even if the type definitions don't allow it.
                 rejectUnauthorized: false,
                 timeout: 5000
             });
-            this._device.socket.on('close', (code, reason) => {
+            this._device.socket = socket;
+            //a previous socket might still close or fail after a reconnect, that must not affect the current connection.
+            const isCurrent = () => socket === this._device.socket;
+            socket.on('close', (code, reason) => {
                 this._device.debug('Socket closed: ' + reason + '(' + code + ')');
-                this._stopPing();
-                this._device.connected = false;
-                if (resolved) {
-                    this.emit('close', code, reason);
-                } else {
+                if (!resolved) {
                     reject(new Error(`Socket closed: ${reason} (${code})`));
                     resolved = true;
                 }
-            });
-            this._device.socket.on('error', (e) => {
-                this._device.debug('Socket error:', e);
+                if (!isCurrent()) {
+                    return;
+                }
+                this._stopPing();
                 this._device.connected = false;
-                if (resolved) {
-                    this.emit('error', e);
-                } else {
+                this.emit('close', code, reason);
+            });
+            socket.on('error', (e) => {
+                this._device.debug('Socket error:', e);
+                if (!resolved) {
                     reject(new Error('Socket error: ' + e));
                     resolved = true;
+                    return;
                 }
+                if (!isCurrent()) {
+                    return;
+                }
+                this._device.connected = false;
+                this.emit('error', e);
             });
-            this._device.socket.on('open', () => {
+            socket.on('open', () => {
                 this._device.debug('Socket open');
                 if (this._device.keepAlive > 0) {
                     this._device.awaitingPong = false;
@@ -156,11 +164,17 @@ class WebSocketClient extends EventEmitter.EventEmitter {
                 resolved = true;
                 this.emit('ready');
             });
-            this._device.socket.on('pong', () => {
-                this._device.awaitingPong = false;
+            socket.on('pong', () => {
+                if (isCurrent()) {
+                    this._device.awaitingPong = false;
+                }
             });
-            this._device.socket.on('message', this._receiveData.bind(this));
-            this._device.socket.on('unexpected-response', (request, response) => this._device.debug('Unexpected response: ', response, 'to', request));
+            socket.on('message', (data) => {
+                if (isCurrent()) {
+                    this._receiveData(data);
+                }
+            });
+            socket.on('unexpected-response', (request, response) => this._device.debug('Unexpected response: ', response, 'to', request));
         });
     }
 
