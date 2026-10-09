@@ -19,8 +19,11 @@
     "type": "git",
     "url": "https://github.com/Garfonso/dlinkWebSocketClient"
   },
+  "engines": {
+    "node": ">=14"
+  },
   "dependencies": {
-    "ws": "^8.13.0"
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^3.5.9",
