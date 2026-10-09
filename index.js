@@ -199,7 +199,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             socket.close();
             this._device.debug('Socket closing, demanded by calling diconnect()');
             setTimeout(() => {
-                if (socket && socket.terminate === 'function') {
+                if (socket && typeof socket.terminate === 'function' && socket.readyState !== WebSocket.CLOSED) {
                     try {
                         socket.terminate();
                         this._device.debug('Socket terminated, demanded by calling diconnect()');
