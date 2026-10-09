@@ -131,7 +131,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
             const socket = new WebSocket('wss://' + this._device.ip + ':' + this._device.port + '/SwitchCamera', {
                 // @ts-ignore -> we need to ignore here, because we must not set subprotocols, server does not set subprotocols, so we can't either or we get an error "Server sent no subprotocol" and connection is closed by ws. The code currently accepts omitting the subprotocols this way, even if the type definitions don't allow it.
                 rejectUnauthorized: false,
-                timeout: 5000
+                handshakeTimeout: 5000
             });
             this._device.socket = socket;
             //a previous socket might still close or fail after a reconnect, that must not affect the current connection.
