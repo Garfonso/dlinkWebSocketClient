@@ -65,8 +65,14 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @param {string} data
      */
     _receiveData(data) {
+        let message;
+        try {
+            message = JSON.parse(data);
+        } catch (e) {
+            this._device.debug('Could not parse message: ' + data);
+            return;
+        }
         this.emit('message', data);
-        const message = JSON.parse(data);
         this._device.debug('Got message: ', util.inspect(message, {showHidden: false, depth: null, colors: true}));
         if (message.command === 'event' && message.event && message.event.metadata) {
             if (message.event.metadata.type === TYPE_SOCKET) {
@@ -259,33 +265,52 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      */
     _sendJsonAsync(data) {
         return new Promise((resolve, reject) => {
-            const that = this;
-            const handleMessage = function (messageText) {
-                const message = JSON.parse(messageText);
+            let expectedSequence = -1;
+            const cleanUp = () => {
+                this.removeListener('message', handleMessage);
+                this.removeListener('close', handleClose);
+                this.removeListener('error', handleError);
+            };
+            const handleMessage = (messageText) => {
+                let message;
+                try {
+                    message = JSON.parse(messageText);
+                } catch (e) {
+                    return; //already logged in _receiveData.
+                }
                 if (message.sequence_id !== expectedSequence) {
-                    that._device.debug('Unexpected message with sequence_id: ' + message.sequence_id);
+                    this._device.debug('Unexpected message with sequence_id: ' + message.sequence_id);
                 } else {
-                    that.removeListener('message', handleMessage);
-                    that.removeListener('error', handleError);
-                    that.removeListener('close', handleError);
+                    cleanUp();
                     resolve(message);
                 }
-            }.bind(this);
-            const handleError = function (code, reason) {
-                that.removeListener('message', handleMessage);
-                that.removeListener('error', handleError);
-                that.removeListener('close', handleError);
-                if (code < 0) {
-                    reject(reason); //error
-                } else {
-                    reject(new Error(`Socket closed: ${reason} (${code})`));
-                }
-            }.bind(this);
+            };
+            const handleClose = (code, reason) => {
+                cleanUp();
+                reject(new Error(`Socket closed: ${reason} (${code})`));
+            };
+            const handleError = (error) => {
+                cleanUp();
+                reject(error);
+            };
 
-            that.on('message', handleMessage);
-            that.once('close', handleError);
-            that.once('error', handleError);
-            const expectedSequence = this._sendJson(data);
+            if (!this._device.socket || this._device.socket.readyState !== WebSocket.OPEN) {
+                const error = new Error('Not connected.');
+                // @ts-ignore - no code property in Error...
+                error.code = 'ENOTCONN';
+                reject(error);
+                return;
+            }
+
+            this.on('message', handleMessage);
+            this.on('close', handleClose);
+            this.on('error', handleError);
+            try {
+                expectedSequence = this._sendJson(data);
+            } catch (e) {
+                cleanUp();
+                reject(e);
+            }
         });
     }
 
