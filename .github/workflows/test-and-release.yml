@@ -1,0 +1,70 @@
+name: Test and Release
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      # release-script creates tags like v1.2.3
+      - 'v*'
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Lint, type check and test on node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x, 24.x]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check
+      - run: npm test
+
+  # Publishes to npm with trusted publishing (OIDC, no token needed).
+  # On npmjs.com the package needs a trusted publisher for this repository and workflow file test-and-release.yml.
+  release:
+    name: Publish to npm and create GitHub release
+    needs: test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create GitHub release
+      id-token: write # trusted publishing
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+      # trusted publishing needs npm 11.5.1 or newer
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - name: Check that tag and package version match
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match package version $VERSION"
+            exit 1
+          fi
+      - run: npm publish
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="### $VERSION " 'index($0, v) == 1 {found=1; next} found && /^### / {exit} found {print}' README.md > release-notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file release-notes.md
