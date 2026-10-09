@@ -30,7 +30,7 @@ class WebSocketClient extends EventEmitter.EventEmitter {
      * @property {number} [port] defaults to 8080
      * @property {string} [model] either w115 or w245.
      * @property {function} [log] function for debug logging, defaults to noop.
-     * @property {number} [keepAlive] seconds to ping, defaults to 30. 0 to turn off.
+     * @property {number} [keepAlive] seconds to send keep_alive, defaults to 30. 0 to turn off. Connection is closed, if not answered in time.
      * @property {number} [timeout] seconds to wait for the answer to a request, defaults to 10. 0 to turn off.
      * @property {boolean} [useTelnetForToken] library should get the device token from telnet (which needs to be active).
      *

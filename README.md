@@ -108,7 +108,7 @@ interface Parameters {
  port: number, //optional defaults to 8080
  model: string, //optional either w115 or w245.
  log: function, //optional, pass function for debug logging, defaults to noop.
- keepAlive: number, //options, interval in seconds to ping. Defaults to 30. Use 0 to turn off. If a ping is not answered until the next one is due, the connection is closed.
+ keepAlive: number, //optional, interval in seconds to send keep_alive. Defaults to 30. Use 0 to turn off. If keep_alive is not answered within this time, the connection is closed.
  timeout: number, //optional, seconds to wait for the answer to a request. Defaults to 10. Use 0 to turn off.
  useTelnetForToken: boolean //if true, in the login command, the library will try to get the token by connecting via telnet.
 }
@@ -176,7 +176,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 -->
 ### __WORK IN PROGRESS__
 * fix: generate device token again on every login (requests failed with 'invalid device token' after the device rebooted).
-* fix: detect dead connections by missing pong and close the socket.
+* fix: detect dead connections and close the socket (keep_alive command instead of websocket ping, which the device does not answer).
 * add: option `timeout` for requests (default 10 seconds).
 * fix: ignore events of previous sockets after reconnect.
 * fix: correct errors for requests if the socket fails or is not connected.
@@ -184,7 +184,8 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 * fix: timeout for connecting and forced close on disconnect did not work.
 * fix: keepAlive 0 did not turn off pings.
 * fix: errors of switch and switchLED have an error code now.
-* update dependencies, requires node 14 or newer.
+* update dependencies, requires node 18 or newer.
+* add tests, type check and CI workflow.
 
 ### 0.5.5 (2023-05-15)
 * prevent issue with multiple start/stop calls on the same device.
