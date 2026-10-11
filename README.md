@@ -167,6 +167,11 @@ The device locks itself for 10 minutes after 10 requests with an invalid device 
 (found in the decompiled firmware of the DSP-W245). While locked, it answers `sign_in` with code 34 (invalid access
 right). This affects all clients, including the app. So do not retry requests with a wrong pin in short intervals.
 
+#### Unsupported devices
+The **DSP-W118** can not be controlled with this library. Its local websocket server only accepts setup commands, the
+relay can only be switched through its connection to the mydlink cloud. See [docs/DSP-W118-analysis.md](docs/DSP-W118-analysis.md)
+for details.
+
 #### Contribution
 Contribution is very welcome. @jonassjoh learned about the protocol by reverse engineering 
 da_adaptor binary in the firmware. I tried to poke around a bit there, too, but failed. If you
@@ -183,6 +188,9 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 	Placeholder for next versions (this needs to be indented):
 	### __WORK IN PROGRESS__
 -->
+### __WORK IN PROGRESS__
+* docs: describe why the DSP-W118 can not be supported.
+
 ### 0.6.2 (2026-10-09)
 * fix: use the new salt the device sends with an invalid device token answer.
 * docs: describe error codes and the lock of the device after too many invalid tokens.
