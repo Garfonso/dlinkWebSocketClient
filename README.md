@@ -84,6 +84,8 @@ used. The following events are emitted:
 ###### switched
 Will be emitted when the plug notifies us of a switch event. 
 Parameters are the new state as boolean and the index of the socket.
+**Note:** at least the DSP-W245 does not send switch events to local clients, see [Events and power measurement](#events-and-power-measurement).
+Poll with `state()` to notice switching with the buttons of the device.
 
 ###### switched-led
 Will be emitted if the LED is switched on/off.
@@ -167,6 +169,26 @@ The device locks itself for 10 minutes after 10 requests with an invalid device 
 (found in the decompiled firmware of the DSP-W245). While locked, it answers `sign_in` with code 34 (invalid access
 right). This affects all clients, including the app. So do not retry requests with a wrong pin in short intervals.
 
+#### Events and power measurement
+Findings from the decompiled firmware of the DSP-W245 (da_adaptor of firmware 1.01b03) and tests with a DSP-W245 and a
+DSP-W115 that were not bound to a mydlink account:
+
+* The device decides for every event whether it is sent to local clients (the connection this library uses), to the
+  mydlink cloud or to both.
+* **Switch events** (e.g. pressing the button of a socket) are sent **to the cloud only**. Local clients never get
+  them, so the device has to be polled to notice switching on the device. In the tests neither the DSP-W245 nor the
+  DSP-W115 sent any event.
+* **Power consumption** (the DSP-W245 measures it per socket) is created as event, that would also be sent to local
+  clients. But the device drops these events if it is not bound to a mydlink account ("ignore handling event due to
+  device not bind yet") and if they are older than the last time synchronization with the cloud ("ignore power
+  consumption event since time not sync yet"). Without cloud binding power values are not available.
+* There is no setting that returns power values: `get_setting` was tried for all types from 0 to 1100. Only type 16
+  (sockets), 272 - 274 (time zone settings), 288 / 290 (wifi settings), 513 / 517 / 519 (always 1) return data.
+  `get_status` answers with code 2 (system error), `get_unit_data` is not answered.
+
+With a device bound to the cloud the PIN does not work anymore, the device token is needed then (see "Get the device
+token" above). Whether power events reach local clients then, was not tested yet.
+
 #### Unsupported devices
 The **DSP-W118** can not be controlled with this library. Its local websocket server only accepts setup commands, the
 relay can only be switched through its connection to the mydlink cloud. See [docs/DSP-W118-analysis.md](docs/DSP-W118-analysis.md)
@@ -190,6 +212,7 @@ Of course I'm also very glad about issues and pull requests if you find a bug / 
 -->
 ### __WORK IN PROGRESS__
 * docs: describe why the DSP-W118 can not be supported.
+* docs: describe which events are sent to local clients and why power values are not available.
 
 ### 0.6.2 (2026-10-09)
 * fix: use the new salt the device sends with an invalid device token answer.
